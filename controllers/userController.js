@@ -3,8 +3,9 @@ const User = require("../models/userModel");
 const Admin = require("../models/adminModel");
 const Regular = require("../models/regularModel");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
-const createuser = asyncHandler(async (req, res) => {
+const createUser = asyncHandler(async (req, res) => {
   try {
     const { firstname, lastname, username, email, password,userRole } = req.body;
 
@@ -18,7 +19,6 @@ const createuser = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("User already registered");
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user
@@ -97,14 +97,10 @@ const loginUser = asyncHandler(async (req, res) => {
         {
           //payload
           user: {
-            firstname: user.firstname,
-            lastname: user.lastname,
             username: user.username,
-            role: user.role,
-            email: user.email,
-            agentNo:user.agentNo,
-            id: user._id,
-            registerId : user.registerId,
+            id: user.id,
+            userRole: user.userRole,
+            registerId: user.registerId
           },
         },
         //access token secret
@@ -126,5 +122,6 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-    createuser
+    createUser,
+    loginUser
   };
