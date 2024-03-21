@@ -115,7 +115,6 @@ const loginUser = asyncHandler(async (req, res) => {
       throw new Error("Invalid password");
     }
   } catch (error) {
-    // Handle any errors that occur
     console.error(error);
     res.status(500).json({ message: "Invalid Login Details. Please try again!" });
   }
@@ -143,9 +142,9 @@ const addDescription = asyncHandler(async (req, res) => {
         day
       };
 
-    admin.description.push(newDescription);
-    await admin.save();
-    res.status(200).json({ admin });
+      admin.description.push(newDescription);
+      await admin.save();
+      res.status(200).json({ admin });
     }else if(req.user.userRole === "Regular"){
       const regular = await Regular.findOne({ _id: req.user.registerId });
 
@@ -171,10 +170,28 @@ const addDescription = asyncHandler(async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Invalid Login Details. Please try again!" });
   }
-
 })
+
+const getdata = asyncHandler(async (req, res) => {
+  try {
+    const userData = await Admin.findOne({ _id: req.user.registerId });
+    if (!userData) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const descriptions = userData.description;
+    res.status(200).json(descriptions);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+
 module.exports = {
     createUser,
     loginUser,
-    addDescription
+    addDescription,
+    getdata
   };
