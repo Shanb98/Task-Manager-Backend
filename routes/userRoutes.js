@@ -1,10 +1,10 @@
 const express = require("express");
 const{
-    createAdmin
-}= require("../controllers/adminController");
+    createuser
+}= require("../controllers/userController");
 
 const router = express.Router();
 
-router.post("/register",createAdmin);
+router.post("/register",createuser);
 
 module.exports = router;
