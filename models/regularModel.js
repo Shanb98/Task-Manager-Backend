@@ -1,5 +1,21 @@
 const mongoose = require("mongoose");
-
+const descriptionSchema = mongoose.Schema({
+    title: {
+      type: String,
+    },
+    label: {
+      type: String,
+    },
+    id: {
+      type: Date,
+    },
+    description: {
+      type: String,
+    },
+    day: {
+      type: Date,
+    }
+});
 const regularSchema = mongoose.Schema({
     firstname: {
         type: String,
@@ -27,6 +43,7 @@ const regularSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "userId",
     },
+    description: [descriptionSchema],
 }, 
 {
     timestamps: true

@@ -65,7 +65,7 @@ const createUser = asyncHandler(async (req, res) => {
       throw new Error("Admin data not valid");
     }
   } catch (error) {
-    console.error('Error in registerAdmin:', error);
+    console.error('Error in createUser:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
@@ -121,7 +121,60 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 });
 
+const addDescription = asyncHandler(async (req, res) => {
+  try {
+    //fetching the email and password from the body
+    const { title,label,id,description,day } = req.body;
+    if (!title || !label||!id || !description||!day) {
+      res.status(400);
+      throw new Error("All fields are mandatory!");
+    }
+    if(req.user.userRole === "Admin"){
+      const admin = await Admin.findOne({ _id: req.user.registerId });
+      if (!admin) {
+        res.status(404);
+        throw new Error("User not found");
+      }
+      const newDescription = {
+        title,
+        label,
+        id,
+        description,
+        day
+      };
+
+    admin.description.push(newDescription);
+    await admin.save();
+    res.status(200).json({ admin });
+    }else if(req.user.userRole === "Regular"){
+      const regular = await Regular.findOne({ _id: req.user.registerId });
+
+      if (!regular) {
+        res.status(404);
+        throw new Error("User not found");
+      }
+      const newDescription = {
+        title,
+        label,
+        id,
+        description,
+        day
+      };
+
+      regular.description.push(newDescription);
+      await regular.save();
+      res.status(200).json({ regular });
+    }
+
+  } catch (error) {
+    // Handle any errors that occur
+    console.error(error);
+    res.status(500).json({ message: "Invalid Login Details. Please try again!" });
+  }
+
+})
 module.exports = {
     createUser,
-    loginUser
+    loginUser,
+    addDescription
   };
