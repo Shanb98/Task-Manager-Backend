@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Admin = require("../models/adminModel");
 const Regular = require("../models/regularModel");
+const MasterDesc = require("../models/masterDesc");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -72,14 +73,13 @@ const createUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   try {
-    //fetching the email and password from the body
+
     const { username, password } = req.body;
     if (!username || !password) {
       res.status(400);
       throw new Error("All fields are mandatory!");
     }
 
-    //taking the email from the req body and finding it from the db
     const user = await User.findOne({ username });
     console.log(user);
 
@@ -90,7 +90,6 @@ const loginUser = asyncHandler(async (req, res) => {
       throw new Error("User not found");
     }
 
-    //comparing the entered password with hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (isPasswordValid) {
       const accessToken = jwt.sign(
@@ -128,6 +127,14 @@ const addDescription = asyncHandler(async (req, res) => {
       res.status(400);
       throw new Error("All fields are mandatory!");
     }
+    const desc = await MasterDesc.create({
+      title: req.user.username + " - " + title,
+      label,
+      id,
+      description,
+      day,
+      userId: req.user.registerId
+    });
     if(req.user.userRole === "Admin"){
       const admin = await Admin.findOne({ _id: req.user.registerId });
       if (!admin) {
@@ -160,38 +167,82 @@ const addDescription = asyncHandler(async (req, res) => {
         day
       };
 
+      
       regular.description.push(newDescription);
       await regular.save();
       res.status(200).json({ regular });
     }
 
   } catch (error) {
-    // Handle any errors that occur
+
     console.error(error);
     res.status(500).json({ message: "Invalid Login Details. Please try again!" });
   }
 })
 
 const getdata = asyncHandler(async (req, res) => {
-  try {
-    const userData = await Admin.findOne({ _id: req.user.registerId });
-    if (!userData) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
+  if (req.user.userRole === "Admin") {
+    try {
+      const contacts = await MasterDesc.find(); 
+      
+      const transformedData = contacts.map(contact => ({
+        title: contact.title,
+        label: contact.label,
+        id: new Date(parseInt(contact.id)).toISOString(), 
+        description: contact.description,
+        day: new Date(parseInt(contact.day)).toISOString(),
+        _id: contact._id
+      }));
 
-    const descriptions = userData.description;
-    res.status(200).json(descriptions);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+      res.status(200).json(transformedData);
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }else{
+    try {
+      const userData = await Regular.findOne({ _id: req.user.registerId });
+      if (!userData) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      const descriptions = userData.description;
+      res.status(200).json(descriptions);
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }  
 });
 
+const getAlldata = asyncHandler(async (req, res) => {
+  if (req.user.userRole === "Admin") {
+    try {
+      const contacts = await MasterDesc.find(); 
+      
+
+      const transformedData = contacts.map(contact => ({
+        title: contact.title,
+        label: contact.label,
+        id: contact.id, 
+        description: contact.description,
+        day: contact.day,
+        _id: contact._id
+      }));
+
+      res.status(200).json(transformedData);
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+});
 
 module.exports = {
     createUser,
     loginUser,
     addDescription,
-    getdata
+    getdata,
+    getAlldata
   };
