@@ -43,6 +43,10 @@ const masterDescSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "userId",
     },
+    descId:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "descId",
+    },
 }, 
 {
     timestamps: true

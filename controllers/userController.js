@@ -121,64 +121,60 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const addDescription = asyncHandler(async (req, res) => {
   try {
-    //fetching the email and password from the body
-    const { title,label,id,description,day } = req.body;
-    if (!title || !label||!id || !description||!day) {
+    // Fetching the email and password from the body
+    const { title, label, id, description, day } = req.body;
+    if (!title || !label || !id || !description || !day) {
       res.status(400);
       throw new Error("All fields are mandatory!");
     }
+  
+    // Create a new description entry
     const desc = await MasterDesc.create({
       title: req.user.username + " - " + title,
       label,
       id,
       description,
       day,
-      userId: req.user.registerId
+      userId: req.user.registerId,
+      descId: null
     });
-    if(req.user.userRole === "Admin"){
-      const admin = await Admin.findOne({ _id: req.user.registerId });
-      if (!admin) {
-        res.status(404);
-        throw new Error("User not found");
-      }
-      const newDescription = {
-        title,
-        label,
-        id,
-        description,
-        day
-      };
 
-      admin.description.push(newDescription);
-      await admin.save();
-      res.status(200).json({ admin });
-    }else if(req.user.userRole === "Regular"){
-      const regular = await Regular.findOne({ _id: req.user.registerId });
+    let user;
 
-      if (!regular) {
-        res.status(404);
-        throw new Error("User not found");
-      }
-      const newDescription = {
-        title,
-        label,
-        id,
-        description,
-        day
-      };
-
-      
-      regular.description.push(newDescription);
-      await regular.save();
-      res.status(200).json({ regular });
+    if (req.user.userRole === "Admin") {
+      user = await Admin.findOne({ _id: req.user.registerId });
+    } else if (req.user.userRole === "Regular") {
+      user = await Regular.findOne({ _id: req.user.registerId });
     }
 
-  } catch (error) {
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
 
+    const newDescription = {
+      title,
+      label,
+      id,
+      description,
+      day
+    };
+
+    // Push the new description to the user's description array
+    user.description.push(newDescription);
+    await user.save();
+
+    // Update the descId of the created description with the _id of the last description in the array
+    desc.descId = user.description[user.description.length - 1]._id;
+    await desc.save();
+
+    res.status(200).json({ user });
+  } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Invalid Login Details. Please try again!" });
   }
-})
+});
+
 
 const getdata = asyncHandler(async (req, res) => {
   if (req.user.userRole === "Admin") {
@@ -239,10 +235,59 @@ const getAlldata = asyncHandler(async (req, res) => {
   }
 });
 
+const deleteDescription = asyncHandler(async (req, res) => {
+  try {
+    const { descId } = req.body;
+    console.log("Deleting description with ID:", descId);
+
+    if (!descId) {
+      res.status(400);
+      throw new Error("Description ID is required for deletion!");
+    }
+
+    let user;
+    if (req.user.userRole === "Admin") {
+      user = await Admin.findOne({ _id: req.user.registerId });
+    } else if (req.user.userRole === "Regular") {
+      user = await Regular.findOne({ _id: req.user.registerId });
+    }
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    // Remove descId from user's description array
+    user.description = user.description.filter((id) => id.toString() !== descId);
+    console.log("User description after removal:", user.description);
+
+    // Save the updated user
+    await user.save();
+    console.log("User saved successfully");
+
+    // Delete the corresponding desc object
+    const deletedDesc = await MasterDesc.deleteOne({ _id: descId });
+    console.log("Deleted description:", deletedDesc);
+
+    if (deletedDesc.deletedCount === 0) {
+      // If no document was deleted, return an error
+      throw new Error("Description not found or already deleted");
+    }
+
+    res.status(200).json({ message: "Description deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting description:", error);
+    res.status(500).json({ message: "Failed to delete description" });
+  }
+});
+
+
+
 module.exports = {
     createUser,
     loginUser,
     addDescription,
     getdata,
-    getAlldata
+    getAlldata,
+    deleteDescription
   };
